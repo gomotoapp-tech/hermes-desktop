@@ -4,7 +4,7 @@
    ======================================================================== */
 
 /* ----- Dark Theme (default) ----- */
-[data-theme='dark'] {
+[data-theme="dark"] {
   --bg-primary: #101010;
   --bg-secondary: #171717;
   --bg-tertiary: #1e1e1e;
@@ -37,7 +37,7 @@
 }
 
 /* ----- Light Theme ----- */
-[data-theme='light'] {
+[data-theme="light"] {
   --bg-primary: #ffffff;
   --bg-secondary: #f8f8f8;
   --bg-tertiary: #f0f0f0;
@@ -76,8 +76,10 @@
   --radius-lg: 14px;
   --radius-xl: 20px;
   --transition: 150ms ease;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    "SF Mono", "Fira Code", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
 /* ----- Body ----- */
@@ -96,12 +98,6 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-}
-
-.drag-region {
-  -webkit-app-region: drag;
-  height: 38px;
-  flex-shrink: 0;
 }
 
 .app-content {
@@ -285,7 +281,7 @@ body {
 
 .welcome-divider::before,
 .welcome-divider::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: var(--border);
@@ -1259,7 +1255,7 @@ body {
 }
 
 .settings-gateway-status::before {
-  content: '';
+  content: "";
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -1385,71 +1381,71 @@ body {
 /* Interactive cards */
 /* ── Office canvas theme variables ── */
 [data-theme="dark"] {
-  --of-floor: #1A1D23;
-  --of-floor-line: rgba(255,255,255,0.04);
-  --of-desk: #5C4A3A;
-  --of-desk-top: #6B5744;
-  --of-desk-leg: #4A3B2E;
-  --of-monitor: #3A3A3A;
+  --of-floor: #1a1d23;
+  --of-floor-line: rgba(255, 255, 255, 0.04);
+  --of-desk: #5c4a3a;
+  --of-desk-top: #6b5744;
+  --of-desk-leg: #4a3b2e;
+  --of-monitor: #3a3a3a;
   --of-screen: #111827;
-  --of-screen-text: #4ADE80;
-  --of-keyboard: #2A2A2A;
-  --of-keyboard-keys: #4ADE80;
-  --of-mug: #D97706;
-  --of-steam: #D4D4D8;
-  --of-nameplate: #B8860B;
-  --of-notebook: #F5F0E0;
+  --of-screen-text: #4ade80;
+  --of-keyboard: #2a2a2a;
+  --of-keyboard-keys: #4ade80;
+  --of-mug: #d97706;
+  --of-steam: #d4d4d8;
+  --of-nameplate: #b8860b;
+  --of-notebook: #f5f0e0;
   --of-notebook-line: #999;
-  --of-pot: #8B6B4A;
-  --of-pot-rim: #A07B55;
-  --of-plant: #22C55E;
-  --of-plant-light: #4ADE80;
-  --of-cooler: #6B7280;
-  --of-water: #60A5FA;
-  --of-cooler-tap: #9CA3AF;
-  --of-wb-frame: #4B5563;
-  --of-wb-surface: #F3F4F6;
-  --of-wb-ink: #3B82F6;
-  --of-wb-ink2: #EF4444;
-  --of-chair: rgba(255,255,255,0.15);
+  --of-pot: #8b6b4a;
+  --of-pot-rim: #a07b55;
+  --of-plant: #22c55e;
+  --of-plant-light: #4ade80;
+  --of-cooler: #6b7280;
+  --of-water: #60a5fa;
+  --of-cooler-tap: #9ca3af;
+  --of-wb-frame: #4b5563;
+  --of-wb-surface: #f3f4f6;
+  --of-wb-ink: #3b82f6;
+  --of-wb-ink2: #ef4444;
+  --of-chair: rgba(255, 255, 255, 0.15);
   --of-rug: var(--accent);
-  --of-tag-bg: rgba(0,0,0,0.6);
-  --of-tag-text: #E5E7EB;
-  --of-role-text: rgba(255,255,255,0.35);
+  --of-tag-bg: rgba(0, 0, 0, 0.6);
+  --of-tag-text: #e5e7eb;
+  --of-role-text: rgba(255, 255, 255, 0.35);
 }
 
 [data-theme="light"] {
-  --of-floor: #F0EDE8;
-  --of-floor-line: rgba(0,0,0,0.06);
-  --of-desk: #C4A882;
-  --of-desk-top: #D4B892;
-  --of-desk-leg: #A08060;
+  --of-floor: #f0ede8;
+  --of-floor-line: rgba(0, 0, 0, 0.06);
+  --of-desk: #c4a882;
+  --of-desk-top: #d4b892;
+  --of-desk-leg: #a08060;
   --of-monitor: #555;
-  --of-screen: #E0F0FF;
-  --of-screen-text: #16A34A;
+  --of-screen: #e0f0ff;
+  --of-screen-text: #16a34a;
   --of-keyboard: #777;
   --of-keyboard-keys: #aaa;
-  --of-mug: #E8A020;
+  --of-mug: #e8a020;
   --of-steam: #888;
-  --of-nameplate: #DAA520;
-  --of-notebook: #FFFDE7;
-  --of-notebook-line: #CCC;
-  --of-pot: #A07B55;
-  --of-pot-rim: #8B6B4A;
-  --of-plant: #16A34A;
-  --of-plant-light: #22C55E;
-  --of-cooler: #9CA3AF;
-  --of-water: #93C5FD;
-  --of-cooler-tap: #6B7280;
-  --of-wb-frame: #9CA3AF;
-  --of-wb-surface: #FFFFFF;
-  --of-wb-ink: #3B82F6;
-  --of-wb-ink2: #EF4444;
-  --of-chair: rgba(0,0,0,0.1);
+  --of-nameplate: #daa520;
+  --of-notebook: #fffde7;
+  --of-notebook-line: #ccc;
+  --of-pot: #a07b55;
+  --of-pot-rim: #8b6b4a;
+  --of-plant: #16a34a;
+  --of-plant-light: #22c55e;
+  --of-cooler: #9ca3af;
+  --of-water: #93c5fd;
+  --of-cooler-tap: #6b7280;
+  --of-wb-frame: #9ca3af;
+  --of-wb-surface: #ffffff;
+  --of-wb-ink: #3b82f6;
+  --of-wb-ink2: #ef4444;
+  --of-chair: rgba(0, 0, 0, 0.1);
   --of-rug: var(--accent);
-  --of-tag-bg: rgba(255,255,255,0.85);
-  --of-tag-text: #1F2937;
-  --of-role-text: rgba(0,0,0,0.3);
+  --of-tag-bg: rgba(255, 255, 255, 0.85);
+  --of-tag-text: #1f2937;
+  --of-role-text: rgba(0, 0, 0, 0.3);
 }
 
 /* Office canvas */
@@ -1511,8 +1507,14 @@ body {
 }
 
 @keyframes office-bubble-in {
-  from { opacity: 0; transform: translateY(6px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .office-bubble-card {
@@ -1520,7 +1522,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 12px 14px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(16px);
   min-width: 180px;
   max-width: 220px;
@@ -1536,7 +1538,7 @@ body {
 }
 
 .office-bubble-arrow::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -1548,7 +1550,7 @@ body {
 }
 
 .office-bubble-arrow::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 1px;
   left: 0;
@@ -1637,7 +1639,7 @@ body {
   cursor: pointer;
 }
 
-.agents-create-clone input[type='checkbox'] {
+.agents-create-clone input[type="checkbox"] {
   accent-color: var(--accent);
 }
 
@@ -2788,7 +2790,7 @@ body {
 }
 
 .tools-toggle-track::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 2px;
   left: 2px;
