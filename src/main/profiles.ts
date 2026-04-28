@@ -4,6 +4,7 @@ import { homedir } from "os";
 import { promises as fs } from "fs";
 import { existsSync } from "fs";
 import { load } from "js-yaml";
+import { sanitizeCliArg } from "./utils";
 import {
   HERMES_HOME,
   HERMES_PYTHON,
@@ -178,6 +179,10 @@ export function createProfile(
   name: string,
   clone: boolean,
 ): { success: boolean; error?: string } {
+  const safeName = sanitizeCliArg(name);
+  if (!safeName) {
+    return { success: false, error: "Invalid profile name" };
+  }
   try {
     const args = clone
       ? ["profile", "create", name, "--clone"]
@@ -207,6 +212,10 @@ export function deleteProfile(name: string): {
 } {
   if (name === "default")
     return { success: false, error: "Cannot delete the default profile" };
+  const safeName = sanitizeCliArg(name);
+  if (!safeName) {
+    return { success: false, error: "Invalid profile name" };
+  }
   try {
     execFileSync(
       HERMES_PYTHON,
@@ -232,6 +241,10 @@ export function deleteProfile(name: string): {
 }
 
 export function setActiveProfile(name: string): void {
+  const safeName = sanitizeCliArg(name);
+  if (!safeName) {
+    return;
+  }
   try {
     execFileSync(HERMES_PYTHON, [HERMES_SCRIPT, "profile", "use", name], {
       cwd: join(HERMES_HOME, "hermes-agent"),

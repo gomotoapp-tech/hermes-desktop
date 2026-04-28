@@ -3,6 +3,7 @@ import { useTheme } from "../../components/ThemeProvider";
 import { SETTINGS_SECTIONS, PROVIDERS, THEME_OPTIONS } from "../../constants";
 import { useI18n } from "../../components/useI18n";
 import { Download, Upload, FileText } from "lucide-react";
+import { escapeHtml } from "../../../../shared/sanitize";
 
 // Read cached values from localStorage for instant display
 function getCachedVersion(): string | null {
@@ -659,7 +660,9 @@ function Settings({
               <div className="settings-migration-title">
                 {t("settings.migrationDetected")}
               </div>
-              <div className="settings-migration-desc" dangerouslySetInnerHTML={{ __html: t("settings.migrationDesc", { path: openclawPath || "" }) }} />
+              <div className="settings-migration-desc" dangerouslySetInnerHTML={{
+  __html: t("settings.migrationDesc", { path: escapeHtml(openclawPath || "") })
+}} />
             </div>
             <button
               className="btn-ghost settings-migration-dismiss"

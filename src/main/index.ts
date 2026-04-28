@@ -7,6 +7,11 @@ import {
   Notification,
 } from "electron";
 import { join } from "path";
+import {
+  validateExternalUrl,
+  validateRemoteUrl,
+  validateBaseUrl,
+} from "../shared/validate-url";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import type { AppUpdater } from "electron-updater";
 import icon from "../../resources/icon.png?asset";
@@ -139,8 +144,10 @@ function createWindow(): void {
     ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
       sandbox: false,
       webviewTag: true,
+      nodeIntegration: false,
     },
   });
 
@@ -173,8 +180,28 @@ function createWindow(): void {
   );
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
+    // Only allow safe protocols
+    try {
+      const url = new URL(details.url);
+      if (url.protocol === "https:" || url.protocol === "http:") {
+        shell.openExternal(details.url);
+      }
+    } catch {
+      // Invalid URL, deny
+    }
     return { action: "deny" };
+  });
+
+  // Enforce Content-Security-Policy via HTTP header
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws:; frame-src 'none'; object-src 'none'",
+        ],
+      },
+    });
   });
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -242,7 +269,12 @@ function setupIPC(): void {
 
   ipcMain.handle(
     "set-env",
-    (_event, key: string, value: string, profile?: string) => {
+    async (_event, key: string, value: string, profile?: string) => {
+      // Block dangerous env vars
+      const blockedVars = ["PATH", "HOME", "SHELL", "USER", "LD_PRELOAD", "DYLD_INSERT_LIBRARIES", "PYTHONPATH"];
+      if (blockedVars.includes(key.toUpperCase())) {
+        throw new Error(`Setting ${key} is not allowed`);
+      }
       setEnvValue(key, value, profile);
       // Restart gateway so it picks up the new API key
       if (
@@ -278,13 +310,17 @@ function setupIPC(): void {
 
   ipcMain.handle(
     "set-model-config",
-    (
+    async (
       _event,
       provider: string,
       model: string,
       baseUrl: string,
       profile?: string,
     ) => {
+      const baseUrlResult = validateBaseUrl(baseUrl);
+      if (!baseUrlResult.valid) {
+        throw new Error(baseUrlResult.error);
+      }
       const prev = getModelConfig(profile);
       setModelConfig(provider, model, baseUrl, profile);
 
@@ -308,13 +344,14 @@ function setupIPC(): void {
 
   ipcMain.handle(
     "set-connection-config",
-    (
-      _event,
-      mode: "local" | "remote",
-      remoteUrl: string,
-      apiKey?: string,
-    ) => {
-      setConnectionConfig({ mode, remoteUrl, apiKey: apiKey || "" });
+    async (_event, mode: string, remoteUrl: string, apiKey?: string) => {
+      if (mode === "remote" && remoteUrl) {
+        const result = validateRemoteUrl(remoteUrl);
+        if (!result.valid) {
+          throw new Error(result.error);
+        }
+      }
+      setConnectionConfig({ mode: mode as "local" | "remote", remoteUrl, apiKey: apiKey || "" });
       return true;
     },
   );
@@ -455,9 +492,11 @@ function setupIPC(): void {
   ipcMain.handle("create-profile", (_event, name: string, clone: boolean) =>
     createProfile(name, clone),
   );
-  ipcMain.handle("delete-profile", (_event, name: string) =>
-    deleteProfile(name),
-  );
+  ipcMain.handle("delete-profile", async (_event, name: string) => {
+    if (name === "default") throw new Error("Cannot delete default profile");
+    if (!/^[\w-.]+$/.test(name)) throw new Error("Invalid profile name");
+    return deleteProfile(name);
+  });
   ipcMain.handle("set-active-profile", (_event, name: string) => {
     setActiveProfile(name);
     return true;
@@ -484,14 +523,19 @@ function setupIPC(): void {
   );
   ipcMain.handle(
     "write-user-profile",
-    (_event, content: string, profile?: string) =>
-      writeUserProfile(content, profile),
+    async (_event, content: string, profile?: string) => {
+      if (content.length > 100000) throw new Error("Content too long");
+      writeUserProfile(content, profile);
+      return true;
+    },
   );
 
   // Soul
   ipcMain.handle("read-soul", (_event, profile?: string) => readSoul(profile));
-  ipcMain.handle("write-soul", (_event, content: string, profile?: string) => {
-    return writeSoul(content, profile);
+  ipcMain.handle("write-soul", async (_event, content: string, profile?: string) => {
+    if (content.length > 100000) throw new Error("Content too long");
+    writeSoul(content, profile);
+    return true;
   });
   ipcMain.handle("reset-soul", (_event, profile?: string) =>
     resetSoul(profile),
@@ -513,8 +557,8 @@ function setupIPC(): void {
     listInstalledSkills(profile),
   );
   ipcMain.handle("list-bundled-skills", () => listBundledSkills());
-  ipcMain.handle("get-skill-content", (_event, skillPath: string) =>
-    getSkillContent(skillPath),
+  ipcMain.handle("get-skill-content", (_event, skillName: string) =>
+    getSkillContent(skillName),
   );
   ipcMain.handle(
     "install-skill",
@@ -648,7 +692,10 @@ function setupIPC(): void {
 
   // Shell
   ipcMain.handle("open-external", (_event, url: string) => {
-    shell.openExternal(url);
+    const result = validateExternalUrl(url);
+    if (result.valid) {
+      shell.openExternal(url);
+    }
   });
 
   // Backup / Import
@@ -657,8 +704,12 @@ function setupIPC(): void {
   );
   ipcMain.handle(
     "run-hermes-import",
-    (_event, archivePath: string, profile?: string) =>
-      runHermesImport(archivePath, profile),
+    async (_event, archivePath: string, profile?: string) => {
+      if (!archivePath || archivePath.includes("..") || archivePath.startsWith("-")) {
+        return { success: false, error: "Invalid archive path" };
+      }
+      return runHermesImport(archivePath, profile);
+    },
   );
 
   // Debug dump

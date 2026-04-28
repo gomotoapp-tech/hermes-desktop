@@ -9,7 +9,7 @@ import {
   HERMES_REPO,
   getEnhancedPath,
 } from "./installer";
-import { profileHome } from "./utils";
+import { profileHome, sanitizeCliArg } from "./utils";
 
 export interface InstalledSkill {
   name: string;
@@ -119,15 +119,30 @@ export function listInstalledSkills(profile?: string): InstalledSkill[] {
 /**
  * Get the full content of a SKILL.md for the detail view.
  */
-export function getSkillContent(skillPath: string): string {
-  const skillFile = join(skillPath, "SKILL.md");
-  if (!existsSync(skillFile)) return "";
-
-  try {
-    return readFileSync(skillFile, "utf-8");
-  } catch {
-    return "";
+export function getSkillContent(skillName: string): string {
+  if (!skillName || typeof skillName !== "string") return "";
+  
+  // Only allow alphanumeric, hyphen, underscore in skill identifiers
+  if (!/^[\w-]+$/.test(skillName)) return "";
+  
+  // Search in allowed directories only
+  const searchDirs = [
+    join(HERMES_HOME, "skills"),          // user-installed skills
+    join(__dirname, "../../../skills"),    // bundled skills (adjust path as needed)
+  ];
+  
+  for (const baseDir of searchDirs) {
+    const skillFile = join(baseDir, skillName, "SKILL.md");
+    try {
+      if (existsSync(skillFile)) {
+        return readFileSync(skillFile, "utf-8");
+      }
+    } catch {
+      // ignore
+    }
   }
+  
+  return "";
 }
 
 /**
@@ -237,6 +252,11 @@ export function installSkill(
   identifier: string,
   profile?: string,
 ): { success: boolean; error?: string } {
+  const safeIdentifier = sanitizeCliArg(identifier);
+  if (!safeIdentifier) {
+    return { success: false, error: "Invalid skill identifier" };
+  }
+
   try {
     const args = [HERMES_SCRIPT, "skills", "install", identifier, "--yes"];
     if (profile && profile !== "default") {
@@ -266,6 +286,11 @@ export function uninstallSkill(
   name: string,
   profile?: string,
 ): { success: boolean; error?: string } {
+  const safeName = sanitizeCliArg(name);
+  if (!safeName) {
+    return { success: false, error: "Invalid skill name" };
+  }
+
   try {
     const args = [HERMES_SCRIPT, "skills", "uninstall", name, "--yes"];
     if (profile && profile !== "default") {

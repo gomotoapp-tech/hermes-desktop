@@ -4,6 +4,7 @@ import { load, dump } from "js-yaml";
 import { HERMES_HOME } from "./installer";
 import { profileHome, escapeRegex, safeWriteFile } from "./utils";
 import { GATEWAY_PLATFORM_KEYS } from "../shared/gateway-platforms";
+import { validateBaseUrl, validateRemoteUrl } from "../shared/validate-url";
 
 // ── Connection Config (local vs remote) ─────────────────
 
@@ -46,6 +47,12 @@ export function getConnectionConfig(): ConnectionConfig {
 }
 
 export function setConnectionConfig(config: ConnectionConfig): void {
+  if (config.mode === "remote" && config.remoteUrl) {
+    const result = validateRemoteUrl(config.remoteUrl);
+    if (!result.valid) {
+      throw new Error(result.error);
+    }
+  }
   const data = readDesktopConfig();
   data.connectionMode = config.mode;
   data.remoteUrl = config.remoteUrl;
@@ -217,6 +224,13 @@ export function setModelConfig(
   baseUrl: string,
   profile?: string,
 ): void {
+  if (baseUrl) {
+    const result = validateBaseUrl(baseUrl);
+    if (!result.valid) {
+      throw new Error(result.error);
+    }
+  }
+
   invalidateCache(`mc:${profile || "default"}`);
   const { configFile } = profilePaths(profile);
   if (!existsSync(configFile)) return;

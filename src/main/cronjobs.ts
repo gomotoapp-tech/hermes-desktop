@@ -3,7 +3,8 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import { execFile } from "child_process";
 import { HERMES_HOME, HERMES_PYTHON, HERMES_SCRIPT } from "./installer";
-import { profileHome } from "./utils";
+import { profileHome, sanitizeCliArg } from "./utils";
+import { sanitizeProfileName } from "../shared/sanitize";
 
 export interface CronJob {
   id: string;
@@ -89,8 +90,13 @@ function runCronCommand(
   profile?: string,
 ): Promise<{ success: boolean; output: string; error?: string }> {
   const cliArgs = [HERMES_SCRIPT];
+  let safeProfile = profile;
   if (profile && profile !== "default") {
-    cliArgs.push("-p", profile);
+    safeProfile = sanitizeProfileName(profile) ?? undefined;
+    if (!safeProfile) {
+      return Promise.resolve({ success: false, output: "", error: "Invalid profile name" });
+    }
+    cliArgs.push("-p", safeProfile);
   }
   cliArgs.push("cron", ...args);
 
@@ -121,10 +127,22 @@ export async function createCronJob(
   deliver?: string,
   profile?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  // Use -- to prevent prompt from being parsed as a flag
-  const args = ["create", schedule];
-  if (name) args.push("--name", name);
-  if (deliver) args.push("--deliver", deliver);
+  const safeSchedule = sanitizeCliArg(schedule);
+  if (!safeSchedule) {
+    return { success: false, error: "Invalid schedule" };
+  }
+
+  const args = ["create", safeSchedule];
+  if (name) {
+    const safeName = sanitizeCliArg(name);
+    if (!safeName) return { success: false, error: "Invalid job name" };
+    args.push("--name", safeName);
+  }
+  if (deliver) {
+    const safeDeliver = sanitizeCliArg(deliver);
+    if (!safeDeliver) return { success: false, error: "Invalid deliver target" };
+    args.push("--deliver", safeDeliver);
+  }
   if (prompt) {
     args.push("--");
     args.push(prompt);
@@ -138,8 +156,9 @@ export async function removeCronJob(
   jobId: string,
   profile?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!jobId) return { success: false, error: "Missing job ID" };
-  const result = await runCronCommand(["remove", jobId], profile);
+  const safeJobId = sanitizeCliArg(jobId);
+  if (!safeJobId) return { success: false, error: "Invalid job ID" };
+  const result = await runCronCommand(["remove", safeJobId], profile);
   return { success: result.success, error: result.error };
 }
 
@@ -147,8 +166,9 @@ export async function pauseCronJob(
   jobId: string,
   profile?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!jobId) return { success: false, error: "Missing job ID" };
-  const result = await runCronCommand(["pause", jobId], profile);
+  const safeJobId = sanitizeCliArg(jobId);
+  if (!safeJobId) return { success: false, error: "Invalid job ID" };
+  const result = await runCronCommand(["pause", safeJobId], profile);
   return { success: result.success, error: result.error };
 }
 
@@ -156,8 +176,9 @@ export async function resumeCronJob(
   jobId: string,
   profile?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!jobId) return { success: false, error: "Missing job ID" };
-  const result = await runCronCommand(["resume", jobId], profile);
+  const safeJobId = sanitizeCliArg(jobId);
+  if (!safeJobId) return { success: false, error: "Invalid job ID" };
+  const result = await runCronCommand(["resume", safeJobId], profile);
   return { success: result.success, error: result.error };
 }
 
@@ -165,7 +186,8 @@ export async function triggerCronJob(
   jobId: string,
   profile?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!jobId) return { success: false, error: "Missing job ID" };
-  const result = await runCronCommand(["run", jobId], profile);
+  const safeJobId = sanitizeCliArg(jobId);
+  if (!safeJobId) return { success: false, error: "Invalid job ID" };
+  const result = await runCronCommand(["run", safeJobId], profile);
   return { success: result.success, error: result.error };
 }

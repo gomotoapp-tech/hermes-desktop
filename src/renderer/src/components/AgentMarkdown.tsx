@@ -3,6 +3,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy } from "lucide-react";
 import { useI18n } from "./useI18n";
+import rehypeSanitize from "rehype-sanitize";
 
 // Lazy-load the heavy syntax highlighter — only imported when a code block renders
 let _highlighterMod: typeof import("react-syntax-highlighter") | null = null;
@@ -128,6 +129,7 @@ const AgentMarkdown = memo(function AgentMarkdown({ children }: { children: stri
   return (
     <Markdown
       remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeSanitize]}
       components={{
         a: ({ href, children }) => (
           <a
@@ -149,6 +151,18 @@ const AgentMarkdown = memo(function AgentMarkdown({ children }: { children: stri
             {children}
           </a>
         ),
+        img: ({ src, alt }) => {
+          if (!src) return null;
+          try {
+            const parsed = new URL(src);
+            if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+              return null;
+            }
+          } catch {
+            return null;
+          }
+          return <img src={src} alt={alt || ""} />;
+        },
         code: ({ className, children, ...props }) => {
           const isInline =
             !className &&

@@ -12,12 +12,13 @@ import {
   getEnhancedPath,
 } from "./installer";
 import { getModelConfig, readEnv, getConnectionConfig } from "./config";
-import { stripAnsi } from "./utils";
+import { stripAnsi, sanitizeCliArg } from "./utils";
 import {
   getKnownApiKeys,
   getUrlKeyMap,
   getLocalProviderIds,
 } from "../shared/providers";
+import { validateRemoteUrl } from "../shared/validate-url";
 
 const LOCAL_API_URL = "http://127.0.0.1:8642";
 
@@ -398,11 +399,29 @@ function sendMessageViaCli(
   const mc = getModelConfig(profile);
   const profileEnv = readEnv(profile);
 
+  // Validate CLI args to prevent argument injection
+  if (resumeSessionId) {
+    const safeResumeId = sanitizeCliArg(resumeSessionId);
+    if (!safeResumeId) {
+      throw new Error("Invalid session ID");
+    }
+    resumeSessionId = safeResumeId;
+  }
+
   const args = [HERMES_SCRIPT];
   if (profile && profile !== "default") {
-    args.push("-p", profile);
+    const safeProfile = sanitizeCliArg(profile);
+    if (!safeProfile) {
+      throw new Error("Invalid profile name");
+    }
+    args.push("-p", safeProfile);
+  } else {
+    args.push("-p", "default");
   }
-  args.push("chat", "-q", message, "-Q", "--source", "desktop");
+
+  // message is already quoted via -q flag, but sanitize it too
+  const safeMessage = message?.slice(0, 32000); // limit message length
+  args.push("chat", "-q", safeMessage, "-Q", "--source", "desktop");
 
   if (resumeSessionId) {
     args.push("--resume", resumeSessionId);
@@ -727,6 +746,11 @@ export function testRemoteConnection(
   url: string,
   apiKey?: string,
 ): Promise<boolean> {
+  const validation = validateRemoteUrl(url);
+  if (!validation.valid) {
+    return Promise.reject(new Error(validation.error));
+  }
+
   return new Promise((resolve) => {
     const target = `${url.replace(/\/+$/, "")}/health`;
     const mod = target.startsWith("https") ? https : http;

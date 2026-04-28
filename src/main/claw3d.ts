@@ -11,6 +11,7 @@ import { homedir } from "os";
 import { createConnection } from "net";
 import { getEnhancedPath, HERMES_HOME } from "./installer";
 import { stripAnsi, safeWriteFile } from "./utils";
+import { validateWsUrl } from "../shared/validate-url";
 
 const HERMES_OFFICE_REPO = "https://github.com/fathah/hermes-office";
 const HERMES_OFFICE_DIR = join(HERMES_HOME, "hermes-office");
@@ -39,6 +40,9 @@ function getSavedPort(): number {
 }
 
 export function setClaw3dPort(port: number): void {
+  if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) {
+    throw new Error("Port must be between 1024 and 65535");
+  }
   safeWriteFile(PORT_FILE, String(port));
   // Re-write .env with updated port
   writeClaw3dSettings();
@@ -58,6 +62,10 @@ function getSavedWsUrl(): string {
 }
 
 export function setClaw3dWsUrl(url: string): void {
+  const result = validateWsUrl(url);
+  if (!result.valid) {
+    throw new Error(result.error);
+  }
   safeWriteFile(WS_URL_FILE, url);
   // Also update the settings.json so Claw3D picks it up
   writeClaw3dSettings(url);

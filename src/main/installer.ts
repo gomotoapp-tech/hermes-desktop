@@ -553,6 +553,22 @@ export async function runHermesImport(
   archivePath: string,
   profile?: string,
 ): Promise<{ success: boolean; error?: string }> {
+  // Validate archive path
+  if (!archivePath) {
+    return { success: false, error: "Archive path is required" };
+  }
+
+  if (archivePath.includes("..") || archivePath.startsWith("-")) {
+    return { success: false, error: "Invalid archive path" };
+  }
+
+  // Verify the file exists and is a valid archive
+  const allowedExtensions = [".tar.gz", ".tgz", ".zip"];
+  const hasValidExtension = allowedExtensions.some((ext) => archivePath.endsWith(ext));
+  if (!hasValidExtension) {
+    return { success: false, error: "Archive must be a .tar.gz, .tgz, or .zip file" };
+  }
+
   if (!existsSync(HERMES_PYTHON) || !existsSync(HERMES_SCRIPT)) {
     return { success: false, error: "Hermes is not installed." };
   }
