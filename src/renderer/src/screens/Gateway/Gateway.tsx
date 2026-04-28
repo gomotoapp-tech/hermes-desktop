@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { GATEWAY_SECTIONS, GATEWAY_PLATFORMS } from "../../constants";
+import { GATEWAY_SECTIONS } from "../../constants";
+import { GATEWAY_PLATFORMS } from "../../../../shared/gateway-platforms";
 import { useI18n } from "../../components/useI18n";
 
 function Gateway({ profile }: { profile?: string }): React.JSX.Element {

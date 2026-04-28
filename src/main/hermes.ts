@@ -13,6 +13,11 @@ import {
 } from "./installer";
 import { getModelConfig, readEnv, getConnectionConfig } from "./config";
 import { stripAnsi } from "./utils";
+import {
+  getKnownApiKeys,
+  getUrlKeyMap,
+  getLocalProviderIds,
+} from "../shared/providers";
 
 const LOCAL_API_URL = "http://127.0.0.1:8642";
 
@@ -36,21 +41,10 @@ function getRemoteAuthHeader(): Record<string, string> {
   return {};
 }
 
-const LOCAL_PROVIDERS = new Set([
-  "custom",
-  "lmstudio",
-  "ollama",
-  "vllm",
-  "llamacpp",
-]);
+const LOCAL_PROVIDERS = new Set(getLocalProviderIds());
 
 // Map base-URL patterns to the API key env var they need
-const URL_KEY_MAP: Array<{ pattern: RegExp; envKey: string }> = [
-  { pattern: /openrouter\.ai/i, envKey: "OPENROUTER_API_KEY" },
-  { pattern: /anthropic\.com/i, envKey: "ANTHROPIC_API_KEY" },
-  { pattern: /openai\.com/i, envKey: "OPENAI_API_KEY" },
-  { pattern: /huggingface\.co/i, envKey: "HF_TOKEN" },
-];
+const URL_KEY_MAP = getUrlKeyMap();
 
 interface ChatHandle {
   abort: () => void;
@@ -427,28 +421,7 @@ function sendMessageViaCli(
   };
 
   // Inject all API keys from the profile .env so the CLI can access them
-  const KNOWN_API_KEYS = [
-    "OPENROUTER_API_KEY",
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "GROQ_API_KEY",
-    "GLM_API_KEY",
-    "KIMI_API_KEY",
-    "MINIMAX_API_KEY",
-    "MINIMAX_CN_API_KEY",
-    "HF_TOKEN",
-    "EXA_API_KEY",
-    "PARALLEL_API_KEY",
-    "TAVILY_API_KEY",
-    "FIRECRAWL_API_KEY",
-    "FAL_KEY",
-    "HONCHO_API_KEY",
-    "BROWSERBASE_API_KEY",
-    "BROWSERBASE_PROJECT_ID",
-    "VOICE_TOOLS_OPENAI_KEY",
-    "TINKER_API_KEY",
-    "WANDB_API_KEY",
-  ];
+  const KNOWN_API_KEYS = getKnownApiKeys();
   for (const key of KNOWN_API_KEYS) {
     if (profileEnv[key] && !env[key]) {
       env[key] = profileEnv[key];

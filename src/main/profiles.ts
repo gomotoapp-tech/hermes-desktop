@@ -3,6 +3,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { promises as fs } from "fs";
 import { existsSync } from "fs";
+import { load } from "js-yaml";
 import {
   HERMES_HOME,
   HERMES_PYTHON,
@@ -32,13 +33,10 @@ async function readProfileConfig(profilePath: string): Promise<{
   const configFile = join(profilePath, "config.yaml");
   try {
     const content = await fs.readFile(configFile, "utf-8");
-    const modelMatch = content.match(/^\s*default:\s*["']?([^"'\n#]+)["']?/m);
-    const providerMatch = content.match(
-      /^\s*provider:\s*["']?([^"'\n#]+)["']?/m,
-    );
+    const doc = load(content) as Record<string, unknown> | null;
     return {
-      model: modelMatch ? modelMatch[1].trim() : "",
-      provider: providerMatch ? providerMatch[1].trim() : "auto",
+      model: (doc?.default as string) || "",
+      provider: (doc?.provider as string) || "auto",
     };
   } catch {
     return { model: "", provider: "" };

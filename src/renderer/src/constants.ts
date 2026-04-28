@@ -14,118 +14,41 @@ export interface SectionDef {
 
 // ── Providers ───────────────────────────────────────────
 
+import { PROVIDERS_REGISTRY, LOCAL_PRESET_IDS } from "../../shared/providers";
+
+export { LOCAL_PRESET_IDS };
+
 export const PROVIDERS = {
   options: [
     { value: "auto", label: "constants.autoDetect" },
-    { value: "openrouter", label: "constants.openrouterName" },
-    { value: "anthropic", label: "constants.anthropicName" },
-    { value: "openai", label: "constants.openaiName" },
-    { value: "google", label: "constants.googleName" },
-    { value: "xai", label: "constants.xaiName" },
-    { value: "nous", label: "constants.nousName" },
-    { value: "qwen", label: "Qwen" },
-    { value: "minimax", label: "MiniMax" },
-    { value: "custom", label: "Local / Custom" },
+    ...PROVIDERS_REGISTRY.filter((p) => p.showInOptions !== false).map((p) => ({
+      value: p.id,
+      label: p.nameKey,
+    })),
   ],
 
   labels: {
-    openrouter: "constants.openrouterName",
-    anthropic: "constants.anthropicName",
-    openai: "constants.openaiName",
-    google: "constants.googleName",
-    xai: "constants.xaiName",
-    nous: "constants.nousName",
-    qwen: "Qwen",
-    minimax: "MiniMax",
+    ...Object.fromEntries(
+      PROVIDERS_REGISTRY.filter((p) => p.showInOptions !== false).map((p) => [
+        p.id,
+        p.nameKey,
+      ]),
+    ),
     custom: "Custom",
   } as Record<string, string>,
 
-  setup: [
-    {
-      id: "openrouter",
-      name: "constants.openrouterName",
-      desc: "constants.openrouterDesc",
-      tag: "constants.openrouterTag",
-      envKey: "OPENROUTER_API_KEY",
-      url: "https://openrouter.ai/keys",
-      placeholder: "sk-or-v1-...",
-      configProvider: "openrouter",
-      baseUrl: "https://openrouter.ai/api/v1",
-      needsKey: true,
-    },
-    {
-      id: "anthropic",
-      name: "constants.anthropicName",
-      desc: "constants.anthropicDesc",
-      tag: "",
-      envKey: "ANTHROPIC_API_KEY",
-      url: "https://console.anthropic.com/settings/keys",
-      placeholder: "sk-ant-...",
-      configProvider: "anthropic",
-      baseUrl: "",
-      needsKey: true,
-    },
-    {
-      id: "openai",
-      name: "constants.openaiName",
-      desc: "constants.openaiDesc",
-      tag: "",
-      envKey: "OPENAI_API_KEY",
-      url: "https://platform.openai.com/api-keys",
-      placeholder: "sk-...",
-      configProvider: "openai",
-      baseUrl: "",
-      needsKey: true,
-    },
-    {
-      id: "google",
-      name: "constants.googleName",
-      desc: "constants.googleDesc",
-      tag: "",
-      envKey: "GOOGLE_API_KEY",
-      url: "https://aistudio.google.com/app/apikey",
-      placeholder: "AIza...",
-      configProvider: "google",
-      baseUrl: "",
-      needsKey: true,
-    },
-    {
-      id: "xai",
-      name: "constants.xaiName",
-      desc: "constants.xaiDesc",
-      tag: "",
-      envKey: "XAI_API_KEY",
-      url: "https://console.x.ai",
-      placeholder: "xai-...",
-      configProvider: "xai",
-      baseUrl: "",
-      needsKey: true,
-    },
-    {
-      id: "nous",
-      name: "constants.nousName",
-      desc: "constants.nousDesc",
-      tag: "constants.nousTag",
-      envKey: "",
-      url: "",
-      placeholder: "",
-      configProvider: "nous",
-      baseUrl: "",
-      needsKey: false,
-    },
-    {
-      id: "local",
-      name: "constants.localName",
-      desc: "constants.localDesc",
-      tag: "constants.localTag",
-      envKey: "",
-      url: "",
-      placeholder: "",
-      configProvider: "custom",
-      baseUrl: "http://localhost:1234/v1",
-      needsKey: false,
-    },
-  ],
+  setup: PROVIDERS_REGISTRY.filter((p) => p.showInSetup).map((p) => ({
+    id: p.id,
+    name: p.nameKey,
+    desc: p.descKey || "",
+    tag: p.tagKey || "",
+    envKey: p.apiKeys[0]?.key || "",
+    url: p.url || "",
+    placeholder: p.placeholder || "",
+    configProvider: p.configProvider || p.id,
+    baseUrl: p.baseUrl || "",
+    needsKey: p.needsKey ?? true,
+  })),
 };
 
 export const LOCAL_PRESETS = [
@@ -147,89 +70,19 @@ export const THEME_STORAGE_KEY = "hermes-theme";
 
 // ── Settings API Key Sections ───────────────────────────
 
+const llmProviderItems: FieldDef[] = PROVIDERS_REGISTRY.flatMap((p) =>
+  p.apiKeys.map((k) => ({
+    key: k.key,
+    label: k.labelKey,
+    type: "password",
+    hint: k.hintKey,
+  })),
+);
+
 export const SETTINGS_SECTIONS: SectionDef[] = [
   {
     title: "constants.sectionLlmProviders",
-    items: [
-      {
-        key: "OPENROUTER_API_KEY",
-        label: "constants.openrouterApiKey",
-        type: "password",
-        hint: "constants.openrouterHint",
-      },
-      {
-        key: "OPENAI_API_KEY",
-        label: "constants.openaiApiKey",
-        type: "password",
-        hint: "constants.openaiHint",
-      },
-      {
-        key: "ANTHROPIC_API_KEY",
-        label: "constants.anthropicApiKey",
-        type: "password",
-        hint: "constants.anthropicHint",
-      },
-      {
-        key: "GROQ_API_KEY",
-        label: "constants.groqApiKey",
-        type: "password",
-        hint: "constants.groqHint",
-      },
-      {
-        key: "GLM_API_KEY",
-        label: "constants.glmApiKey",
-        type: "password",
-        hint: "constants.glmHint",
-      },
-      {
-        key: "KIMI_API_KEY",
-        label: "constants.kimiApiKey",
-        type: "password",
-        hint: "constants.kimiHint",
-      },
-      {
-        key: "MINIMAX_API_KEY",
-        label: "constants.minimaxApiKey",
-        type: "password",
-        hint: "constants.minimaxHint",
-      },
-      {
-        key: "MINIMAX_CN_API_KEY",
-        label: "constants.minimaxCnApiKey",
-        type: "password",
-        hint: "constants.minimaxCnHint",
-      },
-      {
-        key: "OPENCODE_ZEN_API_KEY",
-        label: "constants.opencodeZenApiKey",
-        type: "password",
-        hint: "constants.opencodeZenHint",
-      },
-      {
-        key: "OPENCODE_GO_API_KEY",
-        label: "constants.opencodeGoApiKey",
-        type: "password",
-        hint: "constants.opencodeGoHint",
-      },
-      {
-        key: "HF_TOKEN",
-        label: "constants.hfToken",
-        type: "password",
-        hint: "constants.hfHint",
-      },
-      {
-        key: "GOOGLE_API_KEY",
-        label: "constants.googleApiKey",
-        type: "password",
-        hint: "constants.googleHint",
-      },
-      {
-        key: "XAI_API_KEY",
-        label: "constants.xaiApiKey",
-        type: "password",
-        hint: "constants.xaiHint",
-      },
-    ],
+    items: llmProviderItems,
   },
   {
     title: "constants.sectionToolApiKeys",
@@ -539,121 +392,6 @@ export const GATEWAY_SECTIONS: SectionDef[] = [
   },
 ];
 
-export interface PlatformDef {
-  key: string;
-  label: string;
-  description: string;
-  fields: string[]; // env keys that belong to this platform
-}
-
-export const GATEWAY_PLATFORMS: PlatformDef[] = [
-  {
-    key: "telegram",
-    label: "constants.platformTelegram",
-    description: "constants.platformTelegramDesc",
-    fields: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_ALLOWED_USERS"],
-  },
-  {
-    key: "discord",
-    label: "constants.platformDiscord",
-    description: "constants.platformDiscordDesc",
-    fields: ["DISCORD_BOT_TOKEN", "DISCORD_ALLOWED_CHANNELS"],
-  },
-  {
-    key: "slack",
-    label: "constants.platformSlack",
-    description: "constants.platformSlackDesc",
-    fields: ["SLACK_BOT_TOKEN", "SLACK_APP_TOKEN"],
-  },
-  {
-    key: "whatsapp",
-    label: "constants.platformWhatsapp",
-    description: "constants.platformWhatsappDesc",
-    fields: ["WHATSAPP_API_URL", "WHATSAPP_API_TOKEN"],
-  },
-  {
-    key: "signal",
-    label: "constants.platformSignal",
-    description: "constants.platformSignalDesc",
-    fields: ["SIGNAL_PHONE_NUMBER"],
-  },
-  {
-    key: "matrix",
-    label: "constants.platformMatrix",
-    description: "constants.platformMatrixDesc",
-    fields: ["MATRIX_HOMESERVER", "MATRIX_USER_ID", "MATRIX_ACCESS_TOKEN"],
-  },
-  {
-    key: "mattermost",
-    label: "constants.platformMattermost",
-    description: "constants.platformMattermostDesc",
-    fields: ["MATTERMOST_URL", "MATTERMOST_TOKEN"],
-  },
-  {
-    key: "email",
-    label: "constants.platformEmail",
-    description: "constants.platformEmailDesc",
-    fields: [
-      "EMAIL_IMAP_SERVER",
-      "EMAIL_SMTP_SERVER",
-      "EMAIL_ADDRESS",
-      "EMAIL_PASSWORD",
-    ],
-  },
-  {
-    key: "sms",
-    label: "constants.platformSms",
-    description: "constants.platformSmsDesc",
-    fields: [
-      "SMS_PROVIDER",
-      "TWILIO_ACCOUNT_SID",
-      "TWILIO_AUTH_TOKEN",
-      "TWILIO_PHONE_NUMBER",
-    ],
-  },
-  {
-    key: "bluebubbles",
-    label: "constants.platformImessage",
-    description: "constants.platformImessageDesc",
-    fields: ["BLUEBUBBLES_URL", "BLUEBUBBLES_PASSWORD"],
-  },
-  {
-    key: "dingtalk",
-    label: "constants.platformDingtalk",
-    description: "constants.platformDingtalkDesc",
-    fields: ["DINGTALK_APP_KEY", "DINGTALK_APP_SECRET"],
-  },
-  {
-    key: "feishu",
-    label: "constants.platformFeishu",
-    description: "constants.platformFeishuDesc",
-    fields: ["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
-  },
-  {
-    key: "wecom",
-    label: "constants.platformWecom",
-    description: "constants.platformWecomDesc",
-    fields: ["WECOM_CORP_ID", "WECOM_AGENT_ID", "WECOM_SECRET"],
-  },
-  {
-    key: "weixin",
-    label: "constants.platformWeixin",
-    description: "constants.platformWeixinDesc",
-    fields: ["WEIXIN_BOT_TOKEN"],
-  },
-  {
-    key: "webhooks",
-    label: "constants.platformWebhooks",
-    description: "constants.platformWebhooksDesc",
-    fields: ["WEBHOOK_SECRET"],
-  },
-  {
-    key: "home_assistant",
-    label: "constants.platformHomeAssistant",
-    description: "constants.platformHomeAssistantDesc",
-    fields: ["HA_URL", "HA_TOKEN"],
-  },
-];
 
 // ── Install ─────────────────────────────────────────────
 

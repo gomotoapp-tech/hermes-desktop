@@ -74,7 +74,13 @@ import {
   listCachedSessions,
   updateSessionTitle,
 } from "./session-cache";
-import { listModels, addModel, removeModel, updateModel } from "./models";
+import {
+  listModels,
+  addModel,
+  removeModel,
+  updateModel,
+  discoverKiloModels,
+} from "./models";
 import {
   listProfiles,
   createProfile,
@@ -564,6 +570,7 @@ function setupIPC(): void {
     (_event, id: string, fields: Record<string, string>) =>
       updateModel(id, fields),
   );
+  ipcMain.handle("discover-kilo-models", async () => discoverKiloModels());
 
   // Claw3D
   ipcMain.handle("claw3d-status", () => getClaw3dStatus());

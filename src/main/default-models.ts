@@ -42,6 +42,55 @@ const DEFAULT_MODELS: DefaultModel[] = [
     baseUrl: "",
   },
 
+  // ── Kilo Gateway (all models via single API key) ─────────────────────
+  {
+    name: "GPT-4.1",
+    provider: "kilo",
+    model: "gpt-4.1",
+    baseUrl: "",
+  },
+  {
+    name: "Claude Sonnet 4",
+    provider: "kilo",
+    model: "claude-sonnet-4-20250514",
+    baseUrl: "",
+  },
+  {
+    name: "Gemini 2.5 Pro",
+    provider: "kilo",
+    model: "gemini-2.5-pro-preview-03-25",
+    baseUrl: "",
+  },
+  {
+    name: "DeepSeek V3",
+    provider: "kilo",
+    model: "deepseek-chat",
+    baseUrl: "",
+  },
+  {
+    name: "Kimi K2.5",
+    provider: "kilo",
+    model: "kimi-k2.5",
+    baseUrl: "",
+  },
+  {
+    name: "DeepSeek V4 Lite (flash)",
+    provider: "kilo",
+    model: "deepseek-v4-lite-flash",
+    baseUrl: "",
+  },
+  {
+    name: "Kimi 2.6",
+    provider: "kilo",
+    model: "kimi-2.6",
+    baseUrl: "",
+  },
+  {
+    name: "MiniMax 2.7",
+    provider: "kilo",
+    model: "minimax-2.7",
+    baseUrl: "",
+  },
 ];
 
 export default DEFAULT_MODELS;

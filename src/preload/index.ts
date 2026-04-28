@@ -414,6 +414,10 @@ const hermesAPI = {
   updateModel: (id: string, fields: Record<string, string>): Promise<boolean> =>
     ipcRenderer.invoke("update-model", id, fields),
 
+  discoverKiloModels: (): Promise<
+    Array<{ id: string; name: string; model: string; provider: string }>
+  > => ipcRenderer.invoke("discover-kilo-models"),
+
   // Claw3D
   claw3dStatus: (): Promise<{
     cloned: boolean;

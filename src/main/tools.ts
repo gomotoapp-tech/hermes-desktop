@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import { load } from "js-yaml";
 import { profileHome, safeWriteFile } from "./utils";
 import { t } from "../shared/i18n";
 import { getAppLocale } from "./locale";
@@ -110,61 +111,15 @@ function localizeToolDefs(
   }));
 }
 
-/**
- * Parse the platform_toolsets.cli list from config.yaml.
- * The yaml structure looks like:
- *   platform_toolsets:
- *     cli:
- *       - web
- *       - browser
- *       ...
- * We use line-by-line parsing to stay consistent with config.ts (no yaml dep).
- */
 function parseEnabledToolsets(configContent: string): Set<string> {
-  const enabled = new Set<string>();
-  const lines = configContent.split("\n");
-
-  let inPlatformToolsets = false;
-  let inCli = false;
-
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
-
-    // Detect section headers
-    if (/^\s*platform_toolsets\s*:/.test(trimmed)) {
-      inPlatformToolsets = true;
-      inCli = false;
-      continue;
-    }
-
-    if (inPlatformToolsets && /^\s+cli\s*:/.test(trimmed)) {
-      inCli = true;
-      continue;
-    }
-
-    // Exit sections on un-indent
-    if (inPlatformToolsets && /^\S/.test(trimmed) && !/^\s*$/.test(trimmed)) {
-      inPlatformToolsets = false;
-      inCli = false;
-      continue;
-    }
-
-    if (inCli && /^\s{4}\S/.test(trimmed) && !/^\s{4,}-/.test(trimmed)) {
-      // A new key at the same level as cli — we've left the cli section
-      inCli = false;
-      continue;
-    }
-
-    // Parse list items inside cli:
-    if (inCli) {
-      const match = trimmed.match(/^\s+-\s+["']?(\w+)["']?/);
-      if (match) {
-        enabled.add(match[1]);
-      }
-    }
+  try {
+    const doc = load(configContent) as Record<string, unknown> | null;
+    const pts = doc?.platform_toolsets as Record<string, unknown> | undefined;
+    const cli = pts?.cli as string[] | undefined;
+    return new Set(cli || []);
+  } catch {
+    return new Set();
   }
-
-  return enabled;
 }
 
 export function getToolsets(profile?: string): ToolsetInfo[] {

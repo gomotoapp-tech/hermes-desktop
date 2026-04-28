@@ -292,6 +292,9 @@ interface HermesAPI {
   }>;
   removeModel: (id: string) => Promise<boolean>;
   updateModel: (id: string, fields: Record<string, string>) => Promise<boolean>;
+  discoverKiloModels: () => Promise<
+    Array<{ id: string; name: string; model: string; provider: string }>
+  >;
 
   // Claw3D
   claw3dStatus: () => Promise<{

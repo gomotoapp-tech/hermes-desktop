@@ -1,7 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
+import { load, dump } from "js-yaml";
 import { HERMES_HOME } from "./installer";
 import { profileHome, escapeRegex, safeWriteFile } from "./utils";
+import { GATEWAY_PLATFORM_KEYS } from "../shared/gateway-platforms";
 
 // ── Connection Config (local vs remote) ─────────────────
 
@@ -159,12 +161,10 @@ export function getConfigValue(key: string, profile?: string): string | null {
   if (!existsSync(configFile)) return null;
 
   const content = readFileSync(configFile, "utf-8");
-  const regex = new RegExp(
-    `^\\s*${escapeRegex(key)}:\\s*["']?([^"'\\n#]+)["']?`,
-    "m",
-  );
-  const match = content.match(regex);
-  return match ? match[1].trim() : null;
+  const doc = load(content) as Record<string, unknown> | null;
+  if (!doc) return null;
+  const val = doc[key];
+  return typeof val === "string" ? val : null;
 }
 
 export function setConfigValue(
@@ -175,17 +175,10 @@ export function setConfigValue(
   const { configFile } = profilePaths(profile);
   if (!existsSync(configFile)) return;
 
-  let content = readFileSync(configFile, "utf-8");
-  const regex = new RegExp(
-    `^(\\s*#?\\s*${escapeRegex(key)}:\\s*)["']?[^"'\\n#]*["']?`,
-    "m",
-  );
-
-  if (regex.test(content)) {
-    content = content.replace(regex, `$1"${value}"`);
-  }
-
-  safeWriteFile(configFile, content);
+  const content = readFileSync(configFile, "utf-8");
+  const doc = (load(content) as Record<string, unknown>) || {};
+  doc[key] = value;
+  safeWriteFile(configFile, dump(doc));
 }
 
 export function getModelConfig(profile?: string): {
@@ -202,15 +195,16 @@ export function getModelConfig(profile?: string): {
   if (!existsSync(configFile)) return defaults;
 
   const content = readFileSync(configFile, "utf-8");
+  const doc = (load(content) as Record<string, unknown>) || {};
 
-  const providerMatch = content.match(/^\s*provider:\s*["']?([^"'\n#]+)["']?/m);
-  const modelMatch = content.match(/^\s*default:\s*["']?([^"'\n#]+)["']?/m);
-  const baseUrlMatch = content.match(/^\s*base_url:\s*["']?([^"'\n#]+)["']?/m);
+  const provider = doc.provider;
+  const model = doc.default;
+  const baseUrl = doc.base_url;
 
   const result = {
-    provider: providerMatch ? providerMatch[1].trim() : defaults.provider,
-    model: modelMatch ? modelMatch[1].trim() : defaults.model,
-    baseUrl: baseUrlMatch ? baseUrlMatch[1].trim() : defaults.baseUrl,
+    provider: typeof provider === "string" ? provider.trim() : defaults.provider,
+    model: typeof model === "string" ? model.trim() : defaults.model,
+    baseUrl: typeof baseUrl === "string" ? baseUrl.trim() : defaults.baseUrl,
   };
 
   setCache(cacheKey, result);
@@ -227,43 +221,19 @@ export function setModelConfig(
   const { configFile } = profilePaths(profile);
   if (!existsSync(configFile)) return;
 
-  let content = readFileSync(configFile, "utf-8");
+  const content = readFileSync(configFile, "utf-8");
+  const doc = (load(content) as Record<string, unknown>) || {};
+  doc.provider = provider;
+  doc.default = model;
+  doc.base_url = baseUrl;
 
-  const providerRegex = /^(\s*provider:\s*)["']?[^"'\n#]*["']?/m;
-  if (providerRegex.test(content)) {
-    content = content.replace(providerRegex, `$1"${provider}"`);
+  if (doc.smart_model_routing && typeof doc.smart_model_routing === "object") {
+    (doc.smart_model_routing as Record<string, unknown>).enabled = false;
   }
 
-  const modelRegex = /^(\s*default:\s*)["']?[^"'\n#]*["']?/m;
-  if (modelRegex.test(content)) {
-    content = content.replace(modelRegex, `$1"${model}"`);
-  }
+  if (doc.streaming !== undefined) doc.streaming = true;
 
-  const baseUrlRegex = /^(\s*base_url:\s*)["']?[^"'\n#]*["']?/m;
-  if (baseUrlRegex.test(content)) {
-    content = content.replace(baseUrlRegex, `$1"${baseUrl}"`);
-  }
-
-  // Disable smart_model_routing
-  const lines = content.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    if (
-      /^\s*enabled:\s*(true|false)/.test(lines[i]) &&
-      i > 0 &&
-      /smart_model_routing/.test(lines[i - 1])
-    ) {
-      lines[i] = lines[i].replace(/(enabled:\s*)(true|false)/, "$1false");
-    }
-  }
-  content = lines.join("\n");
-
-  // Enable streaming
-  const streamingRegex = /^(\s*streaming:\s*)(\S+)/m;
-  if (streamingRegex.test(content)) {
-    content = content.replace(streamingRegex, "$1true");
-  }
-
-  safeWriteFile(configFile, content);
+  safeWriteFile(configFile, dump(doc));
 }
 
 export function getHermesHome(profile?: string): string {
@@ -272,23 +242,17 @@ export function getHermesHome(profile?: string): string {
 
 // ── Platform enabled/disabled in config.yaml ────────────
 
-const SUPPORTED_PLATFORMS = ["telegram", "discord", "slack", "whatsapp", "signal"];
-
 export function getPlatformEnabled(profile?: string): Record<string, boolean> {
   const { configFile } = profilePaths(profile);
   if (!existsSync(configFile)) return {};
 
   const content = readFileSync(configFile, "utf-8");
+  const doc = (load(content) as Record<string, unknown>) || {};
+  const platforms = (doc.platforms as Record<string, unknown>) || {};
   const result: Record<string, boolean> = {};
 
-  for (const platform of SUPPORTED_PLATFORMS) {
-    // Match "  platform:\n    enabled: true/false" under the platforms: block
-    const re = new RegExp(
-      `^[ \\t]+${platform}:\\s*\\n[ \\t]+enabled:\\s*(true|false)`,
-      "m",
-    );
-    const match = content.match(re);
-    result[platform] = match ? match[1] === "true" : false;
+  for (const key of GATEWAY_PLATFORM_KEYS) {
+    result[key] = (platforms[key] as Record<string, unknown>)?.enabled === true;
   }
 
   return result;
@@ -299,58 +263,24 @@ export function setPlatformEnabled(
   enabled: boolean,
   profile?: string,
 ): void {
-  if (!SUPPORTED_PLATFORMS.includes(platform)) return;
+  const allowed = new Set(GATEWAY_PLATFORM_KEYS);
+  if (!allowed.has(platform)) return;
 
   const { configFile } = profilePaths(profile);
   if (!existsSync(configFile)) return;
 
-  let content = readFileSync(configFile, "utf-8");
-
-  // Check if the platform entry already exists under platforms:
-  const existingRe = new RegExp(
-    `^([ \\t]+${platform}:\\s*\\n[ \\t]+enabled:\\s*)(?:true|false)`,
-    "m",
-  );
-
-  if (existingRe.test(content)) {
-    // Update existing entry
-    content = content.replace(existingRe, `$1${enabled}`);
-  } else {
-    // Append new platform entry after the platforms: block
-    // Find the platforms: line and insert after the last existing platform entry
-    const platformsIdx = content.indexOf("\nplatforms:");
-    if (platformsIdx === -1) {
-      // No platforms section at all — append one
-      content += `\nplatforms:\n  ${platform}:\n    enabled: ${enabled}\n`;
-    } else {
-      // Insert the new platform at the end of the platforms block.
-      // Find the next top-level key (non-indented, non-comment, non-empty line)
-      // after the platforms: line.
-      const afterPlatforms = content.substring(platformsIdx + 1);
-      const lines = afterPlatforms.split("\n");
-      let insertOffset = platformsIdx + 1; // after the \n
-      // Skip the "platforms:" line itself
-      insertOffset += lines[0].length + 1;
-
-      // Skip all indented lines (children of platforms:)
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.trim() === "" || /^\s/.test(line)) {
-          insertOffset += line.length + 1;
-        } else {
-          break;
-        }
-      }
-
-      const entry = `  ${platform}:\n    enabled: ${enabled}\n`;
-      content =
-        content.substring(0, insertOffset) +
-        entry +
-        content.substring(insertOffset);
-    }
+  const content = readFileSync(configFile, "utf-8");
+  const doc = (load(content) as Record<string, unknown>) || {};
+  if (!doc.platforms || typeof doc.platforms !== "object") {
+    doc.platforms = {};
   }
+  const platforms = doc.platforms as Record<string, unknown>;
+  if (!platforms[platform] || typeof platforms[platform] !== "object") {
+    platforms[platform] = {};
+  }
+  (platforms[platform] as Record<string, unknown>).enabled = enabled;
 
-  safeWriteFile(configFile, content);
+  safeWriteFile(configFile, dump(doc));
 }
 
 // ── Credential Pool (auth.json) ──────────────────────────

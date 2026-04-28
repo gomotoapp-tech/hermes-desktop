@@ -4,6 +4,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { getModelConfig, getConnectionConfig } from "./config";
 import { stripAnsi } from "./utils";
+import { getKnownApiKeys, getLocalProviderIds } from "../shared/providers";
 
 export const HERMES_HOME = join(homedir(), ".hermes");
 export const HERMES_REPO = join(HERMES_HOME, "hermes-agent");
@@ -111,7 +112,7 @@ export function checkInstallStatus(): InstallStatus {
   // Local/custom providers don't need an API key
   try {
     const mc = getModelConfig();
-    const localProviders = ["custom", "lmstudio", "ollama", "vllm", "llamacpp"];
+    const localProviders = getLocalProviderIds();
     if (localProviders.includes(mc.provider)) {
       hasApiKey = true;
     }
@@ -122,19 +123,22 @@ export function checkInstallStatus(): InstallStatus {
   if (!hasApiKey && configured) {
     try {
       const content = readFileSync(HERMES_ENV_FILE, "utf-8");
-      for (const line of content.split("\n")) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("#")) continue;
-        const match = trimmed.match(
-          /^(OPENROUTER_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY)=(.+)$/,
-        );
-        if (
-          match &&
-          match[2].trim() &&
-          !['""', "''", ""].includes(match[2].trim())
-        ) {
-          hasApiKey = true;
-          break;
+      const knownKeys = getKnownApiKeys();
+      if (knownKeys.length > 0) {
+        const keyPattern = knownKeys.join("|");
+        const regex = new RegExp(`^(?:${keyPattern})=(.+)$`);
+        for (const line of content.split("\n")) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("#")) continue;
+          const match = trimmed.match(regex);
+          if (
+            match &&
+            match[1].trim() &&
+            !['""', "''", ""].includes(match[1].trim())
+          ) {
+            hasApiKey = true;
+            break;
+          }
         }
       }
     } catch {

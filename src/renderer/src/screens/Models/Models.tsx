@@ -22,6 +22,8 @@ function Models(): React.JSX.Element {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [discovered, setDiscovered] = useState<Array<{ id: string; name: string; model: string; provider: string }>>([]);
+  const [discovering, setDiscovering] = useState(false);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -103,6 +105,22 @@ function Models(): React.JSX.Element {
     await loadModels();
   }
 
+  async function handleDiscoverKilo(): Promise<void> {
+    setDiscovering(true);
+    try {
+      const list = await window.hermesAPI.discoverKiloModels();
+      setDiscovered(list);
+    } catch {
+      // ignore
+    }
+    setDiscovering(false);
+  }
+
+  async function handleAddDiscovered(name: string, model: string): Promise<void> {
+    await window.hermesAPI.addModel(name, "kilo", model, "");
+    await loadModels();
+  }
+
   const filtered = models.filter((m) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -139,6 +157,13 @@ function Models(): React.JSX.Element {
           <Plus size={14} />
           {t("models.addModel")}
         </button>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={handleDiscoverKilo}
+          disabled={discovering}
+        >
+          {discovering ? "Discovering..." : "Discover Kilo Models"}
+        </button>
       </div>
 
       {models.length > 0 && (
@@ -152,6 +177,30 @@ function Models(): React.JSX.Element {
             placeholder={t("models.searchPlaceholder")}
           />
         </div>
+      )}
+
+      {discovered.length > 0 && (
+        <>
+          <h2 style={{ fontSize: 16, marginBottom: 8 }}>Discovered Kilo Models</h2>
+          <div className="models-grid">
+            {discovered.map((m) => (
+              <div key={m.id} className="models-card">
+                <div className="models-card-header">
+                  <div className="models-card-name">{m.name}</div>
+                </div>
+                <div className="models-card-model">{m.model}</div>
+                <div className="models-card-footer">
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleAddDiscovered(m.name, m.model)}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {filtered.length === 0 ? (
