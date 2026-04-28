@@ -445,7 +445,10 @@ export async function runInstall(
     // Source the user's shell profile to get the same PATH as their terminal,
     // then run the official install script. Electron apps launched from Finder
     // don't inherit the terminal environment.
-    const shellProfile = getShellProfile(home);
+    let shellProfile = getShellProfile(home);
+    if (shellProfile && !shellProfile.startsWith(home)) {
+      shellProfile = null;
+    }
     const installCmd = [
       shellProfile ? `source "${shellProfile}" 2>/dev/null;` : "",
       "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --skip-setup",
