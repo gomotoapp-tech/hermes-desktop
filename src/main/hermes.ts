@@ -475,6 +475,22 @@ function sendMessageViaCli(
     delete env.OPENROUTER_BASE_URL;
   }
 
+  // ── Kilo Gateway (OpenAI-compatible) ──────────────────────────────
+  const isKiloProvider = mc.provider === "kilo";
+  if (isKiloProvider) {
+    env.HERMES_INFERENCE_PROVIDER = "custom";
+    env.OPENAI_BASE_URL = "https://api.kilo.ai/api/gateway";
+    
+    const kiloKey = profileEnv.KILO_API_KEY || env.KILO_API_KEY || "";
+    env.OPENAI_API_KEY = kiloKey || "no-key-required";
+    
+    // Clean up other provider keys to avoid confusion
+    delete env.OPENROUTER_API_KEY;
+    delete env.ANTHROPIC_API_KEY;
+    delete env.ANTHROPIC_TOKEN;
+    delete env.OPENROUTER_BASE_URL;
+  }
+
   const proc = spawn(HERMES_PYTHON, args, {
     cwd: HERMES_REPO,
     env,
